@@ -14,25 +14,25 @@
     
     <nav>
         <div class="tabs">
-            <button class="tab active" onclick="showTab('home')">
+            <button class="tab active" data-tab="home">
                 <span class="emoji-icon">🏠</span> Home
             </button>
-            <button class="tab" onclick="showTab('events')">
+            <button class="tab" data-tab="events">
                 <span class="emoji-icon">📆</span> Ereignisse
             </button>
-            <button class="tab" onclick="showTab('place-bet')">
+            <button class="tab" data-tab="place-bet">
                 <span class="emoji-icon">🎲</span> Wette platzieren
             </button>
-            <button class="tab" onclick="showTab('bets')">
+            <button class="tab" data-tab="bets">
                 <span class="emoji-icon">📝</span> Alle Wetten
             </button>
-            <button class="tab" onclick="showTab('leaderboard')">
+            <button class="tab" data-tab="leaderboard">
                 <span class="emoji-icon">🏆</span> Rangliste
             </button>
-            <button class="tab" onclick="showTab('admin')">
+            <button class="tab" data-tab="admin">
                 <span class="emoji-icon">👨‍💼</span> Admin
             </button>
-            <button class="tab" onclick="showTab('banker')">
+            <button class="tab" data-tab="banker">
                 <span class="emoji-icon">💰</span> Banker
             </button>
         </div>
@@ -83,11 +83,11 @@
         <!-- Events Tab -->
         <section id="events" class="tab-content">
             <div class="filter-container">
-                <button class="filter-btn active" onclick="loadEventsList('all')">Alle</button>
-                <button class="filter-btn" onclick="loadEventsList('pending')">Ausstehend</button>
-                <button class="filter-btn" onclick="loadEventsList('certified')">Zertifiziert</button>
-                <button class="filter-btn" onclick="loadEventsList('occurred')">Eingetreten</button>
-                <button class="filter-btn" onclick="loadEventsList('rejected')">Abgelehnt</button>
+                <button class="filter-btn active" data-filter="all">Alle</button>
+                <button class="filter-btn" data-filter="pending">Ausstehend</button>
+                <button class="filter-btn" data-filter="certified">Zertifiziert</button>
+                <button class="filter-btn" data-filter="occurred">Eingetreten</button>
+                <button class="filter-btn" data-filter="rejected">Abgelehnt</button>
             </div>
             
             <div id="event-list" class="card-container">
@@ -99,7 +99,7 @@
         <section id="place-bet" class="tab-content">
             <div class="form-card">
                 <h2><span class="emoji-icon">🎲</span> Neue Wette platzieren</h2>
-                <form id="bet-form">
+                <div id="bet-form">
                     <div class="form-group">
                         <label for="bettor-name">Dein Name:</label>
                         <input type="text" id="bettor-name" required>
@@ -150,18 +150,18 @@
                     <button type="submit" class="btn-primary">
                         <span class="emoji-icon">🎲</span> Wette platzieren
                     </button>
-                </form>
+                </div>
             </div>
         </section>
         
         <!-- Bets Tab -->
         <section id="bets" class="tab-content">
             <div class="filter-container">
-                <button class="filter-btn active" onclick="loadBetsList('all')">Alle</button>
-                <button class="filter-btn" onclick="loadBetsList('pending')">Ausstehend</button>
-                <button class="filter-btn" onclick="loadBetsList('won')">Gewonnen</button>
-                <button class="filter-btn" onclick="loadBetsList('lost')">Verloren</button>
-                <button class="filter-btn" onclick="loadBetsList('paid')">Ausbezahlt</button>
+                <button class="filter-btn active" data-filter="all">Alle</button>
+                <button class="filter-btn" data-filter="pending">Ausstehend</button>
+                <button class="filter-btn" data-filter="won">Gewonnen</button>
+                <button class="filter-btn" data-filter="lost">Verloren</button>
+                <button class="filter-btn" data-filter="paid">Ausbezahlt</button>
             </div>
             
             <div id="bet-list" class="card-container">
@@ -202,7 +202,7 @@
                 </div>
             </div>
             
-            <div class="admin-content" id="admin-content">
+            <div class="admin-content" id="admin-content" style="display: none;">
                 <div class="form-card">
                     <h2><span class="emoji-icon">📆</span> Ereignisse verwalten</h2>
                     <table id="admin-events-table">
@@ -241,7 +241,7 @@
                 
                 <div class="form-card">
                     <h2><span class="emoji-icon">➕</span> Neues Ereignis erstellen</h2>
-                    <form id="event-form">
+                    <div id="event-form">
                         <div class="form-group">
                             <label for="event-name">Ereignisname:</label>
                             <input type="text" id="event-name" required>
@@ -262,14 +262,45 @@
                         <button type="submit" class="btn-primary">
                             <span class="emoji-icon">➕</span> Ereignis erstellen
                         </button>
-                    </form>
+                    </div>
                 </div>
             </div>
         </section>
         
-        <!-- Banker Tab - Content will be generated by JavaScript -->
+        <!-- Banker Tab -->
         <section id="banker" class="tab-content">
-            <!-- Banker content will be generated by JavaScript -->
+            <div class="auth-panel" id="banker-login">
+                <div class="password-container">
+                    <h2><span class="emoji-icon">💰</span> Banker-Bereich</h2>
+                    <div class="form-group">
+                        <label for="banker-password">Banker-Passwort:</label>
+                        <input type="password" id="banker-password">
+                    </div>
+                    <button onclick="checkBankerPassword()">
+                        <span class="emoji-icon">🔑</span> Einloggen
+                    </button>
+                </div>
+            </div>
+            
+            <div class="banker-content" id="banker-content" style="display: none;">
+                <div class="form-card">
+                    <h2><span class="emoji-icon">💸</span> Auszahlungen verwalten</h2>
+                    <table id="banker-bets-table">
+                        <thead>
+                            <tr>
+                                <th>Wetter</th>
+                                <th>Ereignis</th>
+                                <th>Einsatz</th>
+                                <th>Status</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Bets will be loaded here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </section>
     </main>
     
@@ -280,7 +311,7 @@
     </div>
     
     <footer>
-        <p>&copy; 2025 SchulWetten 🏫 - Die Wettplattform für alle Schulereignisse</p>
+        <p>© 2025 SchulWetten 🏫 - Die Wettplattform für alle Schulereignisse</p>
     </footer>
     
     <script src="schulwetten.js"></script>
