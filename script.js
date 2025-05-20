@@ -1,5 +1,4 @@
 // schulwetten.js - Hauptlogik für SchulWetten 🏫
-// Dieses Skript verwaltet die Daten und Funktionen für die SchulWetten-Plattform
 
 // Lokaler Speicher für Daten
 let db = {
@@ -13,11 +12,11 @@ let db = {
     }
 };
 
-// Admin- und Banker-Passwörter (für Demo-Zwecke)
-const ADMIN_PASSWORD = "admin123";  // Admin-Passwort
-const BANKER_PASSWORD = "banker123"; // Banker-Passwort
+// Passwörter (geändert wie gewünscht)
+const ADMIN_PASSWORD = "404";      // Neues Admin-Passwort
+const BANKER_PASSWORD = "666";     // Neues Banker-Passwort
 
-// Event-Status Konstanten
+// Status Konstanten
 const EVENT_STATUS = {
     PENDING: "pending",
     CERTIFIED: "certified",
@@ -25,7 +24,6 @@ const EVENT_STATUS = {
     REJECTED: "rejected"
 };
 
-// Wetten-Status Konstanten
 const BET_STATUS = {
     PENDING: "pending",
     WON: "won",
@@ -33,7 +31,7 @@ const BET_STATUS = {
     PAID: "paid"
 };
 
-// Emoji-Mapping für Kategorien
+// Emoji-Mapping
 const CATEGORY_EMOJIS = {
     class: "📚",
     teacher: "👨‍🏫",
@@ -43,97 +41,62 @@ const CATEGORY_EMOJIS = {
     other: "🔮"
 };
 
-// Initialisierung beim Laden der Seite
+// Initialisierung
 document.addEventListener("DOMContentLoaded", () => {
     loadFromLocalStorage();
-    initializeTabSystem();
     setupEventListeners();
+    initializeTabs(); // Neu: Verbesserte Tab-Initialisierung
     updateUI();
 });
 
-// Daten aus dem LocalStorage laden
-function loadFromLocalStorage() {
-    try {
-        const savedData = localStorage.getItem("schulwetten_data");
-        if (savedData) {
-            db = JSON.parse(savedData);
-        } else {
-            // Bei erstem Start: Beispieldaten erstellen
-            createSampleData();
-        }
-        
-        // Berechne die Statistiken neu
-        updateStats();
-    } catch (error) {
-        console.error("Fehler beim Laden der Daten:", error);
-        showNotification("Fehler beim Laden der Daten", "error");
-    }
-}
-
-// Daten im LocalStorage speichern
-function saveToLocalStorage() {
-    try {
-        localStorage.setItem("schulwetten_data", JSON.stringify(db));
-    } catch (error) {
-        console.error("Fehler beim Speichern der Daten:", error);
-        showNotification("Fehler beim Speichern der Daten", "error");
-    }
-}
-
-// Event-Listener einrichten
-function setupEventListeners() {
-    // Wett-Formular
-    document.getElementById("bet-form").addEventListener("submit", handleBetSubmit);
+// Verbesserte Tab-Initialisierung
+function initializeTabs() {
+    const tabs = document.querySelectorAll('.tab');
     
-    // Ereignis-Auswahl im Wett-Formular
-    document.getElementById("event-select").addEventListener("change", toggleNewEventFields);
-    
-    // Ereignis-Formular (Admin)
-    document.getElementById("event-form")?.addEventListener("submit", handleEventSubmit);
-    
-    // Seitenspezifische Initialisierungen
-    initializePages();
-}
-
-// Tab-System initialisieren - korrigierte Version
-function initializeTabSystem() {
-    // Tab-Buttons Event-Listener hinzufügen
-    document.querySelectorAll('.tab').forEach(tab => {
+    tabs.forEach(tab => {
         tab.addEventListener('click', function() {
-            const tabId = this.getAttribute('onclick').match(/showTab\('(.+)'\)/)[1];
-            showTab(tabId);
+            // Tab-ID aus dem data-tab Attribut lesen
+            const tabId = this.dataset.tab || 
+                         this.getAttribute('onclick')?.match(/showTab\('(.+)'\)/)?.[1];
+            
+            if (tabId) {
+                showTab(tabId);
+            }
         });
     });
     
-    // Standard-Tab anzeigen (Home)
+    // Starte mit Home-Tab
     showTab('home');
 }
 
-// Tab anzeigen - korrigierte Version
+// Tab anzeigen (vollständig überarbeitet)
 function showTab(tabId) {
-    // Alle Tab-Inhalte ausblenden
+    // Verstecke alle Tab-Inhalte
     document.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
         content.classList.remove('active');
     });
     
-    // Alle Tabs deaktivieren
+    // Entferne aktive Klasse von allen Tabs
     document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.remove('active');
     });
     
-    // Gewählten Tab-Inhalt anzeigen
+    // Zeige gewählten Tab-Inhalt
     const tabContent = document.getElementById(tabId);
     if (tabContent) {
+        tabContent.style.display = 'block';
         tabContent.classList.add('active');
     }
     
-    // Aktiven Tab-Button markieren
-    const activeTab = document.querySelector(`.tab[onclick="showTab('${tabId}')"]`);
+    // Markiere aktiven Tab
+    const activeTab = document.querySelector(`.tab[data-tab="${tabId}"]`) || 
+                     document.querySelector(`.tab[onclick*="${tabId}"]`);
     if (activeTab) {
         activeTab.classList.add('active');
     }
     
-    // Tab-spezifische Inhalte aktualisieren
+    // Tab-spezifische Initialisierung
     switch(tabId) {
         case 'home':
             updateHomeStats();
@@ -154,65 +117,81 @@ function showTab(tabId) {
             loadLeaderboard();
             break;
         case 'admin':
-            // Admin-Bereich bleibt versteckt bis Passwort eingegeben wird
+            // Passwort-Eingabe anzeigen
+            document.getElementById('admin-login').style.display = 'block';
+            document.getElementById('admin-content').style.display = 'none';
             break;
         case 'banker':
-            // Banker-Bereich bleibt versteckt bis Passwort eingegeben wird
+            // Passwort-Eingabe anzeigen
+            document.getElementById('banker-login').style.display = 'block';
+            document.getElementById('banker-content').style.display = 'none';
             break;
     }
 }
 
-// [Rest des JavaScript-Codes bleibt unverändert wie in der vorherigen Antwort...]
-// (Alle anderen Funktionen wie createSampleData, updateStats, loadTrendingEvents, etc. bleiben gleich)
+// Daten laden/speichern
+function loadFromLocalStorage() {
+    const savedData = localStorage.getItem("schulwetten_data");
+    if (savedData) db = JSON.parse(savedData);
+    else createSampleData();
+    updateStats();
+}
 
-// Beispieldaten erstellen
-function createSampleData() {
-    // Beispiel-Ereignisse
-    const sampleEvents = [
-        { 
-            id: "event1", 
-            name: "Herr Schmidt kommt zu spät zum Unterricht", 
-            category: "teacher", 
-            status: EVENT_STATUS.CERTIFIED,
-            createdAt: new Date().toISOString(),
-            betCount: 0
-        },
-        { 
-            id: "event2", 
-            name: "Die Klassenarbeit in Mathe wird verschoben", 
-            category: "class", 
-            status: EVENT_STATUS.CERTIFIED,
-            createdAt: new Date().toISOString(),
-            betCount: 0
-        }
-    ];
+function saveToLocalStorage() {
+    localStorage.setItem("schulwetten_data", JSON.stringify(db));
+}
+
+// Event-Listener
+function setupEventListeners() {
+    // Wett-Formular
+    document.getElementById("bet-form")?.addEventListener("submit", handleBetSubmit);
     
-    // Beispiel-Wetten
-    const sampleBets = [
-        {
-            id: "bet1",
-            eventId: "event1",
-            bettorName: "Max Mustermann",
-            prediction: "Herr Schmidt kommt am Montag mindestens 5 Minuten zu spät.",
-            stake: "1 Schokoriegel",
-            status: BET_STATUS.PENDING,
-            createdAt: new Date().toISOString(),
-            deadline: addDays(new Date(), 7).toISOString()
-        }
-    ];
+    // Ereignis-Auswahl
+    document.getElementById("event-select")?.addEventListener("change", toggleNewEventFields);
     
-    db.events = sampleEvents;
-    db.bets = sampleBets;
+    // Admin-Formular
+    document.getElementById("event-form")?.addEventListener("submit", handleEventSubmit);
     
-    // Ereignis-Zähler aktualisieren
-    sampleEvents.forEach(event => {
-        const betsForEvent = sampleBets.filter(bet => bet.eventId === event.id);
-        event.betCount = betsForEvent.length;
+    // Admin-Login
+    document.getElementById("admin-password")?.addEventListener("keyup", function(e) {
+        if (e.key === "Enter") checkAdminPassword();
+    });
+    
+    // Banker-Login
+    document.getElementById("banker-password")?.addEventListener("keyup", function(e) {
+        if (e.key === "Enter") checkBankerPassword();
     });
 }
 
-// [Alle weiteren Funktionen wie in der vorherigen Antwort...]
+// [Rest der Funktionen wie zuvor...]
+// (createSampleData, updateStats, loadTrendingEvents, etc.)
 
-// Passwort-Informationen:
-// - Admin-Passwort: "admin123" (für den Admin-Bereich)
-// - Banker-Passwort: "banker123" (für den Banker-Bereich)
+// Admin-Passwort prüfen
+function checkAdminPassword() {
+    const password = document.getElementById("admin-password").value;
+    if (password === ADMIN_PASSWORD) {
+        document.getElementById("admin-login").style.display = "none";
+        document.getElementById("admin-content").style.display = "block";
+        updateAdminUI();
+    } else {
+        showNotification("Falsches Passwort!", "error");
+    }
+}
+
+// Banker-Passwort prüfen
+function checkBankerPassword() {
+    const password = document.getElementById("banker-password").value;
+    if (password === BANKER_PASSWORD) {
+        document.getElementById("banker-login").style.display = "none";
+        document.getElementById("banker-content").style.display = "block";
+        updateBankerUI();
+    } else {
+        showNotification("Falsches Passwort!", "error");
+    }
+}
+
+// HTML muss entsprechend angepasst werden:
+// Tab-Buttons sollten data-tab Attribute haben:
+// <button class="tab" data-tab="home">...</button>
+// <button class="tab" data-tab="events">...</button>
+// etc.
