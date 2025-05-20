@@ -99,7 +99,7 @@
         <section id="place-bet" class="tab-content">
             <div class="form-card">
                 <h2><span class="emoji-icon">🎲</span> Neue Wette platzieren</h2>
-                <div id="bet-form">
+                <form id="bet-form">
                     <div class="form-group">
                         <label for="bettor-name">Dein Name:</label>
                         <input type="text" id="bettor-name" required>
@@ -150,7 +150,7 @@
                     <button type="submit" class="btn-primary">
                         <span class="emoji-icon">🎲</span> Wette platzieren
                     </button>
-                </div>
+                </form>
             </div>
         </section>
         
@@ -241,7 +241,7 @@
                 
                 <div class="form-card">
                     <h2><span class="emoji-icon">➕</span> Neues Ereignis erstellen</h2>
-                    <div id="event-form">
+                    <form id="event-form">
                         <div class="form-group">
                             <label for="event-name">Ereignisname:</label>
                             <input type="text" id="event-name" required>
@@ -262,7 +262,7 @@
                         <button type="submit" class="btn-primary">
                             <span class="emoji-icon">➕</span> Ereignis erstellen
                         </button>
-                    </div>
+                    </form>
                 </div>
             </div>
         </section>
@@ -284,19 +284,18 @@
             
             <div class="banker-content" id="banker-content" style="display: none;">
                 <div class="form-card">
-                    <h2><span class="emoji-icon">💸</span> Auszahlungen verwalten</h2>
+                    <h2><span class="emoji-icon">💸</span> Zahlungshistorie</h2>
                     <table id="banker-bets-table">
                         <thead>
                             <tr>
                                 <th>Wetter</th>
                                 <th>Ereignis</th>
                                 <th>Einsatz</th>
-                                <th>Status</th>
-                                <th>Aktionen</th>
+                                <th>Auszahlungsdatum</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Bets will be loaded here by JavaScript -->
+                            <!-- Paid bets will be loaded here by JavaScript -->
                         </tbody>
                     </table>
                 </div>
