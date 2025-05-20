@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SchulWetten 🏫 - Wette auf Schulereignisse</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>SchulWetten 🏫</h1>
+        <p class="tagline">Die Wettplattform für alle Schulereignisse</p>
+    </header>
+    
+    <nav>
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('home')">
+                <span class="emoji-icon">🏠</span> Home
+            </button>
+            <button class="tab" onclick="showTab('events')">
+                <span class="emoji-icon">📆</span> Ereignisse
+            </button>
+            <button class="tab" onclick="showTab('place-bet')">
+                <span class="emoji-icon">🎲</span> Wette platzieren
+            </button>
+            <button class="tab" onclick="showTab('bets')">
+                <span class="emoji-icon">📝</span> Alle Wetten
+            </button>
+            <button class="tab" onclick="showTab('leaderboard')">
+                <span class="emoji-icon">🏆</span> Rangliste
+            </button>
+            <button class="tab" onclick="showTab('admin')">
+                <span class="emoji-icon">👨‍💼</span> Admin
+            </button>
+            <button class="tab" onclick="showTab('banker')">
+                <span class="emoji-icon">💰</span> Banker
+            </button>
+        </div>
+    </nav>
+    
+    <main>
+        <!-- Home Tab -->
+        <section id="home" class="tab-content active">
+            <div class="stats-container">
+                <div class="stat-card">
+                    <span class="emoji-icon">📆</span>
+                    <div class="stat-value" id="total-events">0</div>
+                    <div class="stat-label">Ereignisse gesamt</div>
+                </div>
+                <div class="stat-card">
+                    <span class="emoji-icon">✅</span>
+                    <div class="stat-value" id="active-events">0</div>
+                    <div class="stat-label">Aktive Ereignisse</div>
+                </div>
+                <div class="stat-card">
+                    <span class="emoji-icon">🎲</span>
+                    <div class="stat-value" id="total-bets">0</div>
+                    <div class="stat-label">Wetten platziert</div>
+                </div>
+                <div class="stat-card">
+                    <span class="emoji-icon">🏆</span>
+                    <div class="stat-value" id="total-stake">0</div>
+                    <div class="stat-label">Gesamteinsatz</div>
+                </div>
+            </div>
+            
+            <div class="content-grid">
+                <div class="grid-item">
+                    <h2><span class="emoji-icon">🔥</span> Beliebteste Ereignisse</h2>
+                    <div id="trending-events" class="card-container">
+                        <!-- Trending events will be loaded here by JavaScript -->
+                    </div>
+                </div>
+                <div class="grid-item">
+                    <h2><span class="emoji-icon">⏱️</span> Neueste Wetten</h2>
+                    <div id="recent-bets" class="card-container">
+                        <!-- Recent bets will be loaded here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Events Tab -->
+        <section id="events" class="tab-content">
+            <div class="filter-container">
+                <button class="filter-btn active" onclick="loadEventsList('all')">Alle</button>
+                <button class="filter-btn" onclick="loadEventsList('pending')">Ausstehend</button>
+                <button class="filter-btn" onclick="loadEventsList('certified')">Zertifiziert</button>
+                <button class="filter-btn" onclick="loadEventsList('occurred')">Eingetreten</button>
+                <button class="filter-btn" onclick="loadEventsList('rejected')">Abgelehnt</button>
+            </div>
+            
+            <div id="event-list" class="card-container">
+                <!-- Events will be loaded here by JavaScript -->
+            </div>
+        </section>
+        
+        <!-- Place Bet Tab -->
+        <section id="place-bet" class="tab-content">
+            <div class="form-card">
+                <h2><span class="emoji-icon">🎲</span> Neue Wette platzieren</h2>
+                <form id="bet-form">
+                    <div class="form-group">
+                        <label for="bettor-name">Dein Name:</label>
+                        <input type="text" id="bettor-name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="event-select">Ereignis auswählen:</label>
+                        <select id="event-select">
+                            <option value="">Neues Ereignis erstellen</option>
+                            <!-- Events will be loaded here by JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div id="new-event-group">
+                        <div class="form-group">
+                            <label for="event-name-input">Neues Ereignis:</label>
+                            <input type="text" id="event-name-input" placeholder="Beschreibe das Ereignis">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="event-category">Kategorie:</label>
+                            <select id="event-category">
+                                <option value="class">Unterricht 📚</option>
+                                <option value="teacher">Lehrer 👨‍🏫</option>
+                                <option value="student">Schüler 👨‍🎓</option>
+                                <option value="facility">Schulgebäude 🏫</option>
+                                <option value="event">Schulveranstaltung 🎭</option>
+                                <option value="other">Sonstiges 🔮</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="prediction-text">Deine Wette:</label>
+                        <textarea id="prediction-text" required placeholder="Was genau wettest du?"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="stake">Einsatz:</label>
+                        <input type="text" id="stake" required placeholder="z.B. '1 Tafel Schokolade'">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="deadline">Deadline (optional):</label>
+                        <input type="datetime-local" id="deadline">
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">
+                        <span class="emoji-icon">🎲</span> Wette platzieren
+                    </button>
+                </form>
+            </div>
+        </section>
+        
+        <!-- Bets Tab -->
+        <section id="bets" class="tab-content">
+            <div class="filter-container">
+                <button class="filter-btn active" onclick="loadBetsList('all')">Alle</button>
+                <button class="filter-btn" onclick="loadBetsList('pending')">Ausstehend</button>
+                <button class="filter-btn" onclick="loadBetsList('won')">Gewonnen</button>
+                <button class="filter-btn" onclick="loadBetsList('lost')">Verloren</button>
+                <button class="filter-btn" onclick="loadBetsList('paid')">Ausbezahlt</button>
+            </div>
+            
+            <div id="bet-list" class="card-container">
+                <!-- Bets will be loaded here by JavaScript -->
+            </div>
+        </section>
+        
+        <!-- Leaderboard Tab -->
+        <section id="leaderboard" class="tab-content">
+            <div class="content-grid">
+                <div class="grid-item">
+                    <h2><span class="emoji-icon">🏆</span> Top Wetter</h2>
+                    <div id="top-bettors" class="leaderboard-container">
+                        <!-- Top bettors will be loaded here by JavaScript -->
+                    </div>
+                </div>
+                <div class="grid-item">
+                    <h2><span class="emoji-icon">🎯</span> Erfolgreiche Wetten</h2>
+                    <div id="successful-bets" class="card-container">
+                        <!-- Successful bets will be loaded here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Admin Tab -->
+        <section id="admin" class="tab-content">
+            <div class="auth-panel" id="admin-login">
+                <div class="password-container">
+                    <h2><span class="emoji-icon">👨‍💼</span> Admin-Bereich</h2>
+                    <div class="form-group">
+                        <label for="admin-password">Admin-Passwort:</label>
+                        <input type="password" id="admin-password">
+                    </div>
+                    <button onclick="checkAdminPassword()">
+                        <span class="emoji-icon">🔑</span> Einloggen
+                    </button>
+                </div>
+            </div>
+            
+            <div class="admin-content" id="admin-content">
+                <div class="form-card">
+                    <h2><span class="emoji-icon">📆</span> Ereignisse verwalten</h2>
+                    <table id="admin-events-table">
+                        <thead>
+                            <tr>
+                                <th>Ereignis</th>
+                                <th>Kategorie</th>
+                                <th>Status</th>
+                                <th>Wetten</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Events will be loaded here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="form-card">
+                    <h2><span class="emoji-icon">🎲</span> Wetten verwalten</h2>
+                    <table id="admin-bets-table">
+                        <thead>
+                            <tr>
+                                <th>Wetter</th>
+                                <th>Ereignis</th>
+                                <th>Einsatz</th>
+                                <th>Status</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Bets will be loaded here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="form-card">
+                    <h2><span class="emoji-icon">➕</span> Neues Ereignis erstellen</h2>
+                    <form id="event-form">
+                        <div class="form-group">
+                            <label for="event-name">Ereignisname:</label>
+                            <input type="text" id="event-name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="admin-event-category">Kategorie:</label>
+                            <select id="admin-event-category">
+                                <option value="class">Unterricht 📚</option>
+                                <option value="teacher">Lehrer 👨‍🏫</option>
+                                <option value="student">Schüler 👨‍🎓</option>
+                                <option value="facility">Schulgebäude 🏫</option>
+                                <option value="event">Schulveranstaltung 🎭</option>
+                                <option value="other">Sonstiges 🔮</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn-primary">
+                            <span class="emoji-icon">➕</span> Ereignis erstellen
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Banker Tab - Content will be generated by JavaScript -->
+        <section id="banker" class="tab-content">
+            <!-- Banker content will be generated by JavaScript -->
+        </section>
+    </main>
+    
+    <div id="notification" class="notification">
+        <div class="notification-content">
+            <span id="notification-message"></span>
+        </div>
+    </div>
+    
+    <footer>
+        <p>&copy; 2025 SchulWetten 🏫 - Die Wettplattform für alle Schulereignisse</p>
+    </footer>
+    
+    <script src="schulwetten.js"></script>
+    <script src="ui-helpers.js"></script>
+</body>
+</html>
