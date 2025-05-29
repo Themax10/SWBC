@@ -1,3 +1,7 @@
+const supabaseUrl = 'https://qirxdlnjyiveqhrstgki.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpcnhkbG5qeWl2ZXFocnN0Z2tpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1MTk1MzgsImV4cCI6MjA2NDA5NTUzOH0.o5Gx_MoYG_eGcVYq0He_ak8KzGWEr-HTnakICGb42Nc';
+const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+
 let db = {
     events: [],
     bets: [],
@@ -36,7 +40,7 @@ const CATEGORY_EMOJIS = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-    loadFromLocalStorage();
+    loadFromSupabase();
     setupEventListeners();
     initializeTabs();
     updateUI();
@@ -105,62 +109,30 @@ function showTab(tabId) {
     }
 }
 
-function loadFromLocalStorage() {
-    const savedData = localStorage.getItem("schulwetten_data");
-    if (savedData) {
-        db = JSON.parse(savedData);
-    } else {
-        createSampleData();
+async function loadFromSupabase() {
+    try {
+        const response = await fetch('/.netlify/functions/get-data');
+        const data = await response.json();
+        if (data.error) {
+            console.error('Error loading data:', data.error);
+            showNotification('Fehler beim Laden der Daten!', 'error');
+            return;
+        }
+        db.events = data.events || [];
+        db.bets = data.bets || [];
+        updateStats();
+        updateUI();
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Fehler beim Laden der Daten!', 'error');
     }
-    updateStats();
-}
-
-function saveToLocalStorage() {
-    localStorage.setItem("schulwetten_data", JSON.stringify(db));
-}
-
-function setupEventListeners() {
-    document.getElementById("bet-form")?.addEventListener("submit", handleBetSubmit);
-    document.getElementById("event-select")?.addEventListener("change", toggleNewEventFields);
-    document.getElementById("event-form")?.addEventListener("submit", handleEventSubmit);
-    document.getElementById("admin-password")?.addEventListener("keyup", function(e) {
-        if (e.key === "Enter") checkAdminPassword();
-    });
-    document.getElementById("banker-password")?.addEventListener("keyup", function(e) {
-        if (e.key === "Enter") checkBankerPassword();
-    });
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            const filter = this.dataset.filter;
-            if (this.closest('#events')) {
-                loadEventsList(filter);
-            } else if (this.closest('#bets')) {
-                loadBetsList(filter);
-            }
-        });
-    });
-}
-
-function createSampleData() {
-    db.events = [
-        { id: 1, name: "Matheprüfung nächste Woche", category: "class", status: EVENT_STATUS.PENDING, bets: [] },
-        { id: 2, name: "Lehrer krank", category: "teacher", status: EVENT_STATUS.CERTIFIED, bets: [] }
-    ];
-    db.bets = [
-        { id: 1, bettor: "Max", eventId: 1, prediction: "Prüfung fällt aus", stake: "1 Schokolade", status: BET_STATUS.PENDING, timestamp: new Date().toISOString() },
-        { id: 2, bettor: "Anna", eventId: 2, prediction: "Herr Müller fehlt", stake: "2 Kekse", status: BET_STATUS.WON, timestamp: new Date().toISOString() }
-    ];
-    updateStats();
-    saveToLocalStorage();
 }
 
 function updateStats() {
     db.stats.totalEvents = db.events.length;
     db.stats.activeEvents = db.events.filter(e => e.status === EVENT_STATUS.CERTIFIED || e.status === EVENT_STATUS.PENDING).length;
     db.stats.totalBets = db.bets.length;
-    db.stats.totalStake = db.bets.length; // Simplified: count stakes as number of bets
+    db.stats.totalStake = db.bets.length; // Simplified
     updateHomeStats();
 }
 
@@ -175,288 +147,405 @@ function loadTrendingEvents() {
     const container = document.getElementById('trending-events');
     container.innerHTML = '';
     const trending = db.events.sort((a, b) => (b.bets?.length || 0) - (a.bets?.length || 0)).slice(0, 3);
-    trending.forEach(event => {
-        container.innerHTML += `
-            <div class="card">
-                <h3>${CATEGORY_EMOJIS[event.category]} ${event.name}</h3>
-                <p>Status: ${event.status}</p>
-                <p>Wetten: ${event.bets?.length || 0}</p>
-            </div>
-        `;
-    });
+    if (trending.length === 0) {
+        container.innerHTML = '<p>Keine Ereignisse verfügbar.</p>';
+    } else {
+        trending.forEach(event => {
+            container.innerHTML += `
+                <div class="card">
+                    <h3>${CATEGORY_EMOJIS[event.category]} ${event.name}</h3>
+                    <p>Status: ${event.status}</p>
+                    <p>Wetten: ${event.bets?.length || 0}</p>
+                </div>
+            `;
+        });
+    }
 }
 
 function loadRecentBets() {
     const container = document.getElementById('recent-bets');
     container.innerHTML = '';
     const recent = db.bets.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 3);
-    recent.forEach(bet => {
-        const event = db.events.find(e => e.id === bet.eventId);
-        container.innerHTML += `
-            <div class="card">
-                <h3>${bet.bettor}</h3>
-                <p>Ereignis: ${event?.name || 'Unbekannt'}</p>
-                <p>Wette: ${bet.prediction}</p>
-                <p>Einsatz: ${bet.stake}</p>
-            </div>
-        `;
-    });
+    if (recent.length === 0) {
+        container.innerHTML = '<p>Keine Wetten verfügbar.</p>';
+    } else {
+        recent.forEach(bet => {
+            const event = db.events.find(e => e.id === bet.event_id);
+            container.innerHTML += `
+                <div class="card">
+                    <h3>${bet.bettor}</h3>
+                    <p>Ereignis: ${event?.name || 'Unbekannt'}</p>
+                    <p>Wette: ${bet.prediction}</p>
+                    <p>Einsatz: ${bet.stake}</p>
+                </div>
+            `;
+        });
+    }
 }
 
 function updateEventSelect() {
     const select = document.getElementById('event-select');
-    select.innerHTML = '<option value="">Neues Ereignis erstellen</option>';
-    db.events.filter(e => e.status !== EVENT_STATUS.REJECTED).forEach(event => {
-        select.innerHTML += `<option value="${event.id}">${CATEGORY_EMOJIS[event.category]} ${event.name}</option>`;
-    });
+    if (select) {
+        select.innerHTML = '<option value="">Neues Ereignis erstellen</option>';
+        db.events.filter(e => e.status !== EVENT_STATUS.REJECTED).forEach(event => {
+            select.innerHTML += `<option value="${event.id}">${CATEGORY_EMOJIS[event.category]} ${event.name}</option>`;
+        });
+    }
 }
 
 function toggleNewEventFields() {
     const select = document.getElementById('event-select');
     const newEventGroup = document.getElementById('new-event-group');
-    newEventGroup.style.display = select.value === '' ? 'block' : 'none';
+    if (select && newEventGroup) {
+        newEventGroup.style.display = select.value === '' ? 'block' : 'none';
+    }
 }
 
-function handleBetSubmit(e) {
+async function handleBetSubmit(e) {
     e.preventDefault();
-    const bettor = document.getElementById('bettor-name').value;
-    const eventId = document.getElementById('event-select').value;
-    const prediction = document.getElementById('prediction-text').value;
-    const stake = document.getElementById('stake').value;
-    const deadline = document.getElementById('deadline').value;
+    const bettor = document.getElementById('bettor-name')?.value?.trim();
+    const eventId = document.getElementById('event-select')?.value;
+    const prediction = document.getElementById('prediction-text')?.value?.trim();
+    const stake = document.getElementById('stake')?.value?.trim();
+    const deadline = document.getElementById('deadline')?.value;
+
+    if (!bettor || !prediction || !stake) {
+        showNotification("Bitte fülle alle Pflichtfelder aus!", "error");
+        return;
+    }
 
     let newEventId = eventId;
     if (!eventId) {
-        const eventName = document.getElementById('event-name-input').value;
-        const category = document.getElementById('event-category').value;
-        if (!eventName) {
-            showNotification("Bitte gib einen Ereignisnamen ein!", "error");
+        const eventName = document.getElementById('event-name-input')?.value?.trim();
+        const category = document.getElementById('event-category')?.value;
+        if (!eventName || !category) {
+            showNotification("Bitte gib einen Ereignisnamen und eine Kategorie ein!", "error");
             return;
         }
-        newEventId = db.events.length + 1;
-        db.events.push({
-            id: newEventId,
-            name: eventName,
-            category,
-            status: EVENT_STATUS.PENDING,
-            bets: []
-        });
+        try {
+            const response = await fetch('/.netlify/functions/create-event', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: eventName, category })
+            });
+            const data = await response.json();
+            if (data.error) {
+                showNotification(data.error, 'error');
+                return;
+            }
+            newEventId = data.id;
+            db.events.push(data);
+            showNotification("Neues Ereignis erstellt!", "success");
+        } catch (error) {
+            showNotification("Fehler beim Erstellen des Ereignisses!", "error");
+            return;
+        }
     }
 
-    const bet = {
-        id: db.bets.length + 1,
-        bettor,
-        eventId: parseInt(newEventId),
-        prediction,
-        stake,
-        status: BET_STATUS.PENDING,
-        timestamp: new Date().toISOString(),
-        deadline: deadline || null
-    };
-    db.bets.push(bet);
-    db.events.find(e => e.id === bet.eventId).bets.push(bet.id);
-    updateStats();
-    saveToLocalStorage();
-    showNotification("Wette erfolgreich platziert!", "success");
-    e.target.reset();
-    updateEventSelect();
-    toggleNewEventFields();
+    try {
+        const response = await fetch('/.netlify/functions/create-bet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bettor, event_id: parseInt(newEventId), prediction, stake, deadline })
+        });
+        const data = await response.json();
+        if (data.error) {
+            showNotification(data.error, 'error');
+            return;
+        }
+        db.bets.push(data);
+        db.events.find(e => e.id === parseInt(newEventId)).bets.push(data.id);
+        updateStats();
+        showNotification("Wette erfolgreich platziert!", "success");
+        e.target.reset();
+        updateEventSelect();
+        toggleNewEventFields();
+        loadEventsList('all');
+        loadBetsList('all');
+    } catch (error) {
+        showNotification("Fehler beim Platzieren der Wette!", "error");
+    }
 }
 
-function handleEventSubmit(e) {
+async function handleEventSubmit(e) {
     e.preventDefault();
-    const eventName = document.getElementById('event-name').value;
-    const category = document.getElementById('admin-event-category').value;
-    db.events.push({
-        id: db.events.length + 1,
-        name: eventName,
-        category,
-        status: EVENT_STATUS.PENDING,
-        bets: []
-    });
-    updateStats();
-    saveToLocalStorage();
-    showNotification("Ereignis erfolgreich erstellt!", "success");
-    e.target.reset();
-    updateAdminUI();
+    const eventName = document.getElementById('event-name')?.value?.trim();
+    const category = document.getElementById('admin-event-category')?.value;
+    
+    if (!eventName || !category) {
+        showNotification("Bitte gib einen Ereignisnamen und eine Kategorie ein!", "error");
+        return;
+    }
+
+    try {
+        const response = await fetch('/.netlify/functions/create-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: eventName, category })
+        });
+        const data = await response.json();
+        if (data.error) {
+            showNotification(data.error, 'error');
+            return;
+        }
+        db.events.push(data);
+        updateStats();
+        showNotification("Ereignis erfolgreich erstellt!", "success");
+        e.target.reset();
+        updateAdminUI();
+        updateEventSelect();
+        loadEventsList('all');
+    } catch (error) {
+        showNotification("Fehler beim Erstellen des Ereignisses!", "error");
+    }
 }
 
 function loadEventsList(filter) {
     const container = document.getElementById('event-list');
-    container.innerHTML = '';
-    let events = db.events;
-    if (filter !== 'all') {
-        events = events.filter(e => e.status === filter);
+    if (container) {
+        container.innerHTML = '';
+        let events = db.events;
+        if (filter !== 'all') {
+            events = events.filter(e => e.status === filter);
+        }
+        if (events.length === 0) {
+            container.innerHTML = '<p>Keine Ereignisse verfügbar.</p>';
+        } else {
+            events.forEach(event => {
+                container.innerHTML += `
+                    <div class="card">
+                        <h3>${CATEGORY_EMOJIS[event.category]} ${event.name}</h3>
+                        <p>Status: ${event.status}</p>
+                        <p>Wetten: ${event.bets?.length || 0}</p>
+                    </div>
+                `;
+            });
+        }
     }
-    events.forEach(event => {
-        container.innerHTML += `
-            <div class="card">
-                <h3>${CATEGORY_EMOJIS[event.category]} ${event.name}</h3>
-                <p>Status: ${event.status}</p>
-                <p>Wetten: ${event.bets?.length || 0}</p>
-            </div>
-        `;
-    });
 }
 
 function loadBetsList(filter) {
     const container = document.getElementById('bet-list');
-    container.innerHTML = '';
-    let bets = db.bets;
-    if (filter !== 'all') {
-        bets = bets.filter(b => b.status === filter);
+    if (container) {
+        container.innerHTML = '';
+        let bets = db.bets;
+        if (filter !== 'all') {
+            bets = bets.filter(b => b.status === filter);
+        }
+        if (bets.length === 0) {
+            container.innerHTML = '<p>Keine Wetten verfügbar.</p>';
+        } else {
+            bets.forEach(bet => {
+                const event = db.events.find(e => e.id === bet.event_id);
+                container.innerHTML += `
+                    <div class="card">
+                        <h3>${bet.bettor}</h3>
+                        <p>Ereignis: ${event?.name || 'Unbekannt'}</p>
+                        <p>Wette: ${bet.prediction}</p>
+                        <p>Einsatz: ${bet.stake}</p>
+                        <p>Status: ${bet.status}</p>
+                    </div>
+                `;
+            });
+        }
     }
-    bets.forEach(bet => {
-        const event = db.events.find(e => e.id === bet.eventId);
-        container.innerHTML += `
-            <div class="card">
-                <h3>${bet.bettor}</h3>
-                <p>Ereignis: ${event?.name || 'Unbekannt'}</p>
-                <p>Wette: ${bet.prediction}</p>
-                <p>Einsatz: ${bet.stake}</p>
-                <p>Status: ${bet.status}</p>
-            </div>
-        `;
-    });
 }
 
 function loadLeaderboard() {
     const topBettors = document.getElementById('top-bettors');
     const successfulBets = document.getElementById('successful-bets');
-    topBettors.innerHTML = '';
-    successfulBets.innerHTML = '';
+    if (topBettors && successfulBets) {
+        topBettors.innerHTML = '';
+        successfulBets.innerHTML = '';
 
-    const bettorStats = {};
-    db.bets.forEach(bet => {
-        if (!bettorStats[bet.bettor]) {
-            bettorStats[bet.bettor] = { total: 0, won: 0 };
+        const bettorStats = {};
+        db.bets.forEach(bet => {
+            if (!bettorStats[bet.bettor]) {
+                bettorStats[bet.bettor] = { total: 0, won: 0 };
+            }
+            bettorStats[bet.bettor].total++;
+            if (bet.status === BET_STATUS.WON || bet.status === BET_STATUS.PAID) {
+                bettorStats[bet.bettor].won++;
+            }
+        });
+
+        const sortedBettors = Object.entries(bettorStats)
+            .sort((a, b) => b[1].won - a[1].won)
+            .slice(0, 5);
+        if (sortedBettors.length === 0) {
+            topBettors.innerHTML = '<p>Keine Wetter verfügbar.</p>';
+        } else {
+            sortedBettors.forEach(([bettor, stats]) => {
+                topBettors.innerHTML += `
+                    <div class="card">
+                        <h3>${bettor}</h3>
+                        <p>Gewonnene Wetten: ${stats.won}</p>
+                        <p>Gesamtwetten: ${stats.total}</p>
+                    </div>
+                `;
+            });
         }
-        bettorStats[bet.bettor].total++;
-        if (bet.status === BET_STATUS.WON) {
-            bettorStats[bet.bettor].won++;
+
+        const wonBets = db.bets.filter(b => b.status === BET_STATUS.WON || b.status === BET_STATUS.PAID).slice(0, 5);
+        if (wonBets.length === 0) {
+            successfulBets.innerHTML = '<p>Keine erfolgreichen Wetten verfügbar.</p>';
+        } else {
+            wonBets.forEach(bet => {
+                const event = db.events.find(e => e.id === bet.event_id);
+                successfulBets.innerHTML += `
+                    <div class="card">
+                        <h3>${bet.bettor}</h3>
+                        <p>Ereignis: ${event?.name || 'Unbekannt'}</p>
+                        <p>Wette: ${bet.prediction}</p>
+                        <p>Einsatz: ${bet.stake}</p>
+                    </div>
+                `;
+            });
         }
-    });
-
-    const sortedBettors = Object.entries(bettorStats)
-        .sort((a, b) => b[1].won - a[1].won)
-        .slice(0, 5);
-    sortedBettors.forEach(([bettor, stats]) => {
-        topBettors.innerHTML += `
-            <div class="card">
-                <h3>${bettor}</h3>
-                <p>Gewonnene Wetten: ${stats.won}</p>
-                <p>Gesamtwetten: ${stats.total}</p>
-            </div>
-        `;
-    });
-
-    const wonBets = db.bets.filter(b => b.status === BET_STATUS.WON).slice(0, 5);
-    wonBets.forEach(bet => {
-        const event = db.events.find(e => e.id === bet.eventId);
-        successfulBets.innerHTML += `
-            <div class="card">
-                <h3>${bet.bettor}</h3>
-                <p>Ereignis: ${event?.name || 'Unbekannt'}</p>
-                <p>Wette: ${bet.prediction}</p>
-                <p>Einsatz: ${bet.stake}</p>
-            </div>
-        `;
-    });
+    }
 }
 
 function updateAdminUI() {
-    const eventsTable = document.getElementById('admin-events-table').querySelector('tbody');
-    const betsTable = document.getElementById('admin-bets-table').querySelector('tbody');
-    eventsTable.innerHTML = '';
-    betsTable.innerHTML = '';
+    const eventsTable = document.getElementById('admin-events-table')?.querySelector('tbody');
+    const betsTable = document.getElementById('admin-bets-table')?.querySelector('tbody');
+    if (eventsTable && betsTable) {
+        eventsTable.innerHTML = '';
+        betsTable.innerHTML = '';
 
-    db.events.forEach(event => {
-        eventsTable.innerHTML += `
-            <tr>
-                <td>${CATEGORY_EMOJIS[event.category]} ${event.name}</td>
-                <td>${event.category}</td>
-                <td>${event.status}</td>
-                <td>${event.bets?.length || 0}</td>
-                <td>
-                    <button onclick="updateEventStatus(${event.id}, '${EVENT_STATUS.CERTIFIED}')">Zertifizieren</button>
-                    <button onclick="updateEventStatus(${event.id}, '${EVENT_STATUS.OCCURRED}')">Eingetreten</button>
-                    <button onclick="updateEventStatus(${event.id}, '${EVENT_STATUS.REJECTED}')">Ablehnen</button>
-                </td>
-            </tr>
-        `;
-    });
+        if (db.events.length === 0) {
+            eventsTable.innerHTML = '<tr><td colspan="5">Keine Ereignisse verfügbar.</td></tr>';
+        } else {
+            db.events.forEach(event => {
+                eventsTable.innerHTML += `
+                    <tr>
+                        <td>${CATEGORY_EMOJIS[event.category]} ${event.name}</td>
+                        <td>${event.category}</td>
+                        <td>${event.status}</td>
+                        <td>${event.bets?.length || 0}</td>
+                        <td>
+                            <button onclick="updateEventStatus(${event.id}, '${EVENT_STATUS.CERTIFIED}')">Zertifizieren</button>
+                            <button onclick="updateEventStatus(${event.id}, '${EVENT_STATUS.OCCURRED}')">Eingetreten</button>
+                            <button onclick="updateEventStatus(${event.id}, '${EVENT_STATUS.REJECTED}')">Ablehnen</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
 
-    db.bets.forEach(bet => {
-        const event = db.events.find(e => e.id === bet.eventId);
-        betsTable.innerHTML += `
-            <tr>
-                <td>${bet.bettor}</td>
-                <td>${event?.name || 'Unbekannt'}</td>
-                <td>${bet.stake}</td>
-                <td>${bet.status}</td>
-                <td>
-                    <button onclick="updateBetStatus(${bet.id}, '${BET_STATUS.WON}')">Gewonnen</button>
-                    <button onclick="updateBetStatus(${bet.id}, '${BET_STATUS.LOST}')">Verloren</button>
-                </td>
-            </tr>
-        `;
-    });
+        if (db.bets.length === 0) {
+            betsTable.innerHTML = '<tr><td colspan="5">Keine Wetten verfügbar.</td></tr>';
+        } else {
+            db.bets.forEach(bet => {
+                const event = db.events.find(e => e.id === bet.event_id);
+                betsTable.innerHTML += `
+                    <tr>
+                        <td>${bet.bettor}</td>
+                        <td>${event?.name || 'Unbekannt'}</td>
+                        <td>${bet.stake}</td>
+                        <td>${bet.status}</td>
+                        <td>
+                            <button onclick="updateBetStatus(${bet.id}, '${BET_STATUS.WON}')">Gewonnen</button>
+                            <button onclick="updateBetStatus(${bet.id}, '${BET_STATUS.LOST}')">Verloren</button>
+                            <button onclick="updateBetStatus(${bet.id}, '${BET_STATUS.PAID}')">Ausbezahlt</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    }
 }
 
 function updateBankerUI() {
-    const betsTable = document.getElementById('banker-bets-table').querySelector('tbody');
-    betsTable.innerHTML = '';
-
-    db.bets.filter(b => b.status === BET_STATUS.WON).forEach(bet => {
-        const event = db.events.find(e => e.id === bet.eventId);
-        betsTable.innerHTML += `
-            <tr>
-                <td>${bet.bettor}</td>
-                <td>${event?.name || 'Unbekannt'}</td>
-                <td>${bet.stake}</td>
-                <td>${bet.status}</td>
-                <td>
-                    <button onclick="updateBetStatus(${bet.id}, '${BET_STATUS.PAID}')">Ausbezahlt</button>
-                </td>
-            </tr>
-        `;
-    });
+    const betsTable = document.getElementById('banker-bets-table')?.querySelector('tbody');
+    if (betsTable) {
+        betsTable.innerHTML = '';
+        const paidBets = db.bets.filter(bet => bet.status === BET_STATUS.PAID);
+        if (paidBets.length === 0) {
+            betsTable.innerHTML = '<tr><td colspan="4">Keine ausbezahlten Wetten.</td></tr>';
+        } else {
+            paidBets.forEach(bet => {
+                const event = db.events.find(e => e.id === bet.event_id);
+                betsTable.innerHTML += `
+                    <tr>
+                        <td>${bet.bettor}</td>
+                        <td>${event?.name || 'Unbekannt'}</td>
+                        <td>${bet.stake}</td>
+                        <td>${bet.paid_date ? new Date(bet.paid_date).toLocaleString('de-DE') : 'Unbekannt'}</td>
+                    </tr>
+                `;
+            });
+        }
+    }
 }
 
-function updateEventStatus(eventId, status) {
-    const event = db.events.find(e => e.id === eventId);
-    if (event) {
-        event.status = status;
+async function updateEventStatus(eventId, status) {
+    try {
+        const response = await fetch('/.netlify/functions/update-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: eventId, status })
+        });
+        const data = await response.json();
+        if (data.error) {
+            showNotification(data.error, 'error');
+            return;
+        }
+        const event = db.events.find(e => e.id === eventId);
+        if (event) {
+            event.status = status;
+        }
         if (status === EVENT_STATUS.OCCURRED) {
-            db.bets.filter(b => b.eventId === eventId).forEach(bet => {
-                bet.status = BET_STATUS.WON; // Simplified logic
+            db.bets.filter(b => b.event_id === eventId).forEach(bet => {
+                bet.status = BET_STATUS.WON;
             });
         } else if (status === EVENT_STATUS.REJECTED) {
-            db.bets.filter(b => b.eventId === eventId).forEach(bet => {
+            db.bets.filter(b => b.event_id === eventId).forEach(bet => {
                 bet.status = BET_STATUS.LOST;
             });
         }
         updateStats();
-        saveToLocalStorage();
         updateAdminUI();
+        updateEventSelect();
+        loadEventsList('all');
+        loadBetsList('all');
+        loadLeaderboard();
         showNotification(`Ereignisstatus auf ${status} aktualisiert!`, "success");
+    } catch (error) {
+        showNotification("Fehler beim Aktualisieren des Ereignisstatus!", "error");
     }
 }
 
-function updateBetStatus(betId, status) {
-    const bet = db.bets.find(b => b.id === betId);
-    if (bet) {
-        bet.status = status;
+async function updateBetStatus(betId, status) {
+    try {
+        const response = await fetch('/.netlify/functions/update-bet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: betId, status })
+        });
+        const data = await response.json();
+        if (data.error) {
+            showNotification(data.error, 'error');
+            return;
+        }
+        const bet = db.bets.find(b => b.id === betId);
+        if (bet) {
+            bet.status = status;
+            if (status === BET_STATUS.PAID) {
+                bet.paid_date = data.paid_date;
+            }
+        }
         updateStats();
-        saveToLocalStorage();
         updateAdminUI();
         updateBankerUI();
+        loadBetsList('all');
         showNotification(`Wettstatus auf ${status} aktualisiert!`, "success");
+    } catch (error) {
+        showNotification("Fehler beim Aktualisieren des Wettstatus!", "error");
     }
 }
 
 function checkAdminPassword() {
-    const password = document.getElementById("admin-password").value;
+    const password = document.getElementById("admin-password")?.value;
     if (password === ADMIN_PASSWORD) {
         document.getElementById("admin-login").style.display = "none";
         document.getElementById("admin-content").style.display = "block";
@@ -467,7 +556,7 @@ function checkAdminPassword() {
 }
 
 function checkBankerPassword() {
-    const password = document.getElementById("banker-password").value;
+    const password = document.getElementById("banker-password")?.value;
     if (password === BANKER_PASSWORD) {
         document.getElementById("banker-login").style.display = "none";
         document.getElementById("banker-content").style.display = "block";
@@ -485,4 +574,33 @@ function updateUI() {
     loadEventsList('all');
     loadBetsList('all');
     loadLeaderboard();
+}
+
+function setupEventListeners() {
+    const betForm = document.getElementById('bet-form');
+    const eventForm = document.getElementById('event-form');
+    const eventSelect = document.getElementById('event-select');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+
+    if (betForm) {
+        betForm.addEventListener('submit', handleBetSubmit);
+    }
+    if (eventForm) {
+        eventForm.addEventListener('submit', handleEventSubmit);
+    }
+    if (eventSelect) {
+        eventSelect.addEventListener('change', toggleNewEventFields);
+    }
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            const filter = this.dataset.filter;
+            if (this.closest('#events')) {
+                loadEventsList(filter);
+            } else if (this.closest('#bets')) {
+                loadBetsList(filter);
+            }
+        });
+    });
 }
