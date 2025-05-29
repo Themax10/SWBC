@@ -40,6 +40,7 @@ const CATEGORY_EMOJIS = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM loaded, initializing app...");
     loadFromSupabase();
     setupEventListeners();
     initializeTabs();
@@ -47,9 +48,16 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function initializeTabs() {
+    console.log("Initializing tabs...");
     const tabs = document.querySelectorAll('.tab');
+    if (!tabs.length) {
+        console.error("No tabs found in DOM!");
+        showNotification("Fehler: Tabs nicht gefunden!", "error");
+        return;
+    }
     tabs.forEach(tab => {
         tab.addEventListener('click', function() {
+            console.log(`Tab clicked: ${this.dataset.tab}`);
             const tabId = this.dataset.tab;
             if (tabId) {
                 showTab(tabId);
@@ -60,6 +68,7 @@ function initializeTabs() {
 }
 
 function showTab(tabId) {
+    console.log(`Showing tab: ${tabId}`);
     document.querySelectorAll('.tab-content').forEach(content => {
         content.style.display = 'none';
         content.classList.remove('active');
@@ -72,6 +81,9 @@ function showTab(tabId) {
     if (tabContent) {
         tabContent.style.display = 'block';
         tabContent.classList.add('active');
+    } else {
+        console.error(`Tab content not found for ID: ${tabId}`);
+        showNotification(`Tab ${tabId} nicht gefunden!`, "error");
     }
     
     const activeTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
@@ -110,6 +122,7 @@ function showTab(tabId) {
 }
 
 async function loadFromSupabase() {
+    console.log("Loading data from Supabase...");
     try {
         const response = await fetch('/.netlify/functions/get-data');
         const data = await response.json();
@@ -118,6 +131,7 @@ async function loadFromSupabase() {
             showNotification('Fehler beim Laden der Daten!', 'error');
             return;
         }
+        console.log("Data loaded:", data);
         db.events = data.events || [];
         db.bets = data.bets || [];
         updateStats();
