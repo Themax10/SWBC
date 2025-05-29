@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SchulWetten 🏫 - Wette auf Schulereignisse</title>
+    <title>SchulWetten 🏫</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <header>
@@ -68,13 +69,13 @@
                 <div class="grid-item">
                     <h2><span class="emoji-icon">🔥</span> Beliebteste Ereignisse</h2>
                     <div id="trending-events" class="card-container">
-                        <!-- Trending events will be loaded here by JavaScript -->
+                        <!-- Trending events will be loaded here -->
                     </div>
                 </div>
                 <div class="grid-item">
                     <h2><span class="emoji-icon">⏱️</span> Neueste Wetten</h2>
                     <div id="recent-bets" class="card-container">
-                        <!-- Recent bets will be loaded here by JavaScript -->
+                        <!-- Recent bets will be loaded here -->
                     </div>
                 </div>
             </div>
@@ -91,7 +92,7 @@
             </div>
             
             <div id="event-list" class="card-container">
-                <!-- Events will be loaded here by JavaScript -->
+                <!-- Events will be loaded here -->
             </div>
         </section>
         
@@ -109,7 +110,7 @@
                         <label for="event-select">Ereignis auswählen:</label>
                         <select id="event-select">
                             <option value="">Neues Ereignis erstellen</option>
-                            <!-- Events will be loaded here by JavaScript -->
+                            <!-- Events will be loaded here -->
                         </select>
                     </div>
                     
@@ -134,7 +135,7 @@
                     
                     <div class="form-group">
                         <label for="prediction-text">Deine Wette:</label>
-                        <textarea id="prediction-text" required placeholder="Was genau wettest du?"></textarea>
+                        <textarea id="prediction-text" required placeholder="Was genau wettst du?"></textarea>
                     </div>
                     
                     <div class="form-group">
@@ -165,7 +166,7 @@
             </div>
             
             <div id="bet-list" class="card-container">
-                <!-- Bets will be loaded here by JavaScript -->
+                <!-- Bets will be loaded here -->
             </div>
         </section>
         
@@ -175,13 +176,13 @@
                 <div class="grid-item">
                     <h2><span class="emoji-icon">🏆</span> Top Wetter</h2>
                     <div id="top-bettors" class="leaderboard-container">
-                        <!-- Top bettors will be loaded here by JavaScript -->
+                        <!-- Top bettors -->
                     </div>
                 </div>
                 <div class="grid-item">
                     <h2><span class="emoji-icon">🎯</span> Erfolgreiche Wetten</h2>
                     <div id="successful-bets" class="card-container">
-                        <!-- Successful bets will be loaded here by JavaScript -->
+                        <!-- Successful bets -->
                     </div>
                 </div>
             </div>
@@ -216,7 +217,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Events will be loaded here by JavaScript -->
+                            <!-- Events -->
                         </tbody>
                     </table>
                 </div>
@@ -234,7 +235,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Bets will be loaded here by JavaScript -->
+                            <!-- Bets -->
                         </tbody>
                     </table>
                 </div>
@@ -248,7 +249,7 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="admin-event-category">Kategorie:</label>
+                            <label for="admin-event-category">Kategorie</label>
                             <select id="admin-event-category">
                                 <option value="class">Unterricht 📚</option>
                                 <option value="teacher">Lehrer 👨‍🏫</option>
@@ -295,7 +296,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Paid bets will be loaded here by JavaScript -->
+                            <!-- Paid bets -->
                         </tbody>
                     </table>
                 </div>
@@ -310,7 +311,7 @@
     </div>
     
     <footer>
-        <p>© 2025 SchulWetten 🏫 - Die Wettplattform für alle Schulereignisse</p>
+        <p>© 2025 SchulWetten 🏫</p>
     </footer>
     
     <script src="schulwetten.js"></script>
