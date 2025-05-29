@@ -1,6 +1,20 @@
+console.log("schulwetten.js loaded");
 const supabaseUrl = 'https://qirxdlnjyiveqhrstgki.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpcnhkbG5qeWl2ZXFocnN0Z2tpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1MTk1MzgsImV4cCI6MjA2NDA5NTUzOH0.o5Gx_MoYG_eGcVYq0He_ak8KzGWEr-HTnakICGb42Nc';
-const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+
+let supabase;
+if (typeof Supabase === 'undefined') {
+    console.error("Supabase is not defined. Ensure Supabase script is loaded.");
+    showNotification("Supabase-Bibliothek nicht geladen!", "error");
+} else {
+    try {
+        supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+        console.log("Supabase client initialized");
+    } catch (error) {
+        console.error("Failed to initialize Supabase:", error);
+        showNotification("Supabase-Initialisierung fehlgeschlagen!", "error");
+    }
+}
 
 let db = {
     events: [],
@@ -41,10 +55,15 @@ const CATEGORY_EMOJIS = {
 
 document.addEventListener("DOMContentLoaded", () => {
     console.log("DOM loaded, initializing app...");
-    loadFromSupabase();
-    setupEventListeners();
-    initializeTabs();
-    updateUI();
+    try {
+        loadFromSupabase();
+        setupEventListeners();
+        initializeTabs();
+        updateHomeStats();
+    } catch (error) {
+        console.error("Initialization error:", error);
+        showNotification("Fehler beim Initialisieren der App!", "error");
+    }
 });
 
 function initializeTabs() {
@@ -52,7 +71,7 @@ function initializeTabs() {
     const tabs = document.querySelectorAll('.tab');
     if (!tabs.length) {
         console.error("No tabs found in DOM!");
-        showNotification("Fehler: Tabs nicht gefunden!", "error");
+        showNotification("Fehler: Keine Tabs gefunden!", "error");
         return;
     }
     tabs.forEach(tab => {
@@ -69,60 +88,70 @@ function initializeTabs() {
 
 function showTab(tabId) {
     console.log(`Showing tab: ${tabId}`);
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.style.display = 'none';
-        content.classList.remove('active');
-    });
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    const tabContent = document.getElementById(tabId);
-    if (tabContent) {
-        tabContent.style.display = 'block';
-        tabContent.classList.add('active');
-    } else {
-        console.error(`Tab content not found for ID: ${tabId}`);
-        showNotification(`Tab ${tabId} nicht gefunden!`, "error");
-    }
-    
-    const activeTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
-    if (activeTab) {
-        activeTab.classList.add('active');
-    }
-    
-    switch(tabId) {
-        case 'home':
-            updateHomeStats();
-            loadTrendingEvents();
-            loadRecentBets();
-            break;
-        case 'events':
-            loadEventsList('all');
-            break;
-        case 'place-bet':
-            updateEventSelect();
-            toggleNewEventFields();
-            break;
-        case 'bets':
-            loadBetsList('all');
-            break;
-        case 'leaderboard':
-            loadLeaderboard();
-            break;
-        case 'admin':
-            document.getElementById('admin-login').style.display = 'block';
-            document.getElementById('admin-content').style.display = 'none';
-            break;
-        case 'banker':
-            document.getElementById('banker-login').style.display = 'block';
-            document.getElementById('banker-content').style.display = 'none';
-            break;
+    try {
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.style.display = 'none';
+            content.classList.remove('active');
+        });
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        const tabContent = document.getElementById(tabId);
+        if (tabContent) {
+            tabContent.style.display = 'block';
+            tabContent.classList.add('active');
+        } else {
+            console.error(`Tab content not found for ID: ${tabId}`);
+            showNotification(`Tab ${tabId} nicht gefunden!`, "error");
+        }
+        
+        const activeTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+        if (activeTab) {
+            activeTab.classList.add('active');
+        }
+        
+        switch(tabId) {
+            case 'home':
+                updateHomeStats();
+                loadTrendingEvents();
+                loadRecentBets();
+                break;
+            case 'events':
+                loadEventsList('all');
+                break;
+            case 'place-bet':
+                updateEventSelect();
+                toggleNewEventFields();
+                break;
+            case 'bets':
+                loadBetsList('all');
+                break;
+            case 'leaderboard':
+                loadLeaderboard();
+                break;
+            case 'admin':
+                document.getElementById('admin-login').style.display = 'block';
+                document.getElementById('admin-content').style.display = 'none';
+                break;
+            case 'banker':
+                document.getElementById('banker-login').style.display = 'block';
+                document.getElementById('banker-content').style.display = 'none';
+                break;
+        }
+    } catch (error) {
+        console.error("Error in showTab:", error);
+        showNotification("Fehler beim Anzeigen des Tabs!", "error");
     }
 }
 
 async function loadFromSupabase() {
     console.log("Loading data from Supabase...");
+    if (!supabase) {
+        console.error("Supabase client not initialized");
+        showNotification("Supabase nicht verfügbar!", "error");
+        return;
+    }
     try {
         const response = await fetch('/.netlify/functions/get-data');
         const data = await response.json();
@@ -135,26 +164,36 @@ async function loadFromSupabase() {
         db.events = data.events || [];
         db.bets = data.bets || [];
         updateStats();
-        updateUI();
+        updateHomeStats();
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error fetching data:', error);
         showNotification('Fehler beim Laden der Daten!', 'error');
     }
 }
 
 function updateStats() {
-    db.stats.totalEvents = db.events.length;
-    db.stats.activeEvents = db.events.filter(e => e.status === EVENT_STATUS.CERTIFIED || e.status === EVENT_STATUS.PENDING).length;
-    db.stats.totalBets = db.bets.length;
-    db.stats.totalStake = db.bets.length; // Simplified
-    updateHomeStats();
+    try {
+        db.stats.totalEvents = db.events.length;
+        db.stats.activeEvents = db.events.filter(e => e.status === EVENT_STATUS.CERTIFIED || e.status === EVENT_STATUS.PENDING).length;
+        db.stats.totalBets = db.bets.length;
+        db.stats.totalStake = db.bets.length; // Simplified
+        updateHomeStats();
+    } catch (error) {
+        console.error("Error updating stats:", error);
+        showNotification("Fehler beim Aktualisieren der Statistiken!", "error");
+    }
 }
 
 function updateHomeStats() {
-    document.getElementById('total-events').textContent = db.stats.totalEvents;
-    document.getElementById('active-events').textContent = db.stats.activeEvents;
-    document.getElementById('total-bets').textContent = db.stats.totalBets;
-    document.getElementById('total-stake').textContent = db.stats.totalStake;
+    try {
+        document.getElementById('total-events').textContent = db.stats.totalEvents;
+        document.getElementById('active-events').textContent = db.stats.activeEvents;
+        document.getElementById('total-bets').textContent = db.stats.totalBets;
+        document.getElementById('total-stake').textContent = db.stats.totalStake;
+    } catch (error) {
+        console.error("Error updating home stats:", error);
+        showNotification("Fehler beim Aktualisieren der Home-Statistiken!", "error");
+    }
 }
 
 function loadTrendingEvents() {
@@ -217,6 +256,10 @@ function toggleNewEventFields() {
 
 async function handleBetSubmit(e) {
     e.preventDefault();
+    if (!supabase) {
+        showNotification("Supabase nicht verfügbar!", "error");
+        return;
+    }
     const bettor = document.getElementById('bettor-name')?.value?.trim();
     const eventId = document.getElementById('event-select')?.value;
     const prediction = document.getElementById('prediction-text')?.value?.trim();
@@ -268,6 +311,7 @@ async function handleBetSubmit(e) {
             return;
         }
         db.bets.push(data);
+        db.events.find(e => e.id === parseInt(newEventId)).bets = db.events.find(e => e.id === parseInt(newEventId)).bets || [];
         db.events.find(e => e.id === parseInt(newEventId)).bets.push(data.id);
         updateStats();
         showNotification("Wette erfolgreich platziert!", "success");
@@ -283,6 +327,10 @@ async function handleBetSubmit(e) {
 
 async function handleEventSubmit(e) {
     e.preventDefault();
+    if (!supabase) {
+        showNotification("Supabase nicht verfügbar!", "error");
+        return;
+    }
     const eventName = document.getElementById('event-name')?.value?.trim();
     const category = document.getElementById('admin-event-category')?.value;
     
@@ -437,9 +485,9 @@ function updateAdminUI() {
                         <td>${event.status}</td>
                         <td>${event.bets?.length || 0}</td>
                         <td>
-                            <button onclick="updateEventStatus(${event.id}, '${EVENT_STATUS.CERTIFIED}')">Zertifizieren</button>
-                            <button onclick="updateEventStatus(${event.id}, '${EVENT_STATUS.OCCURRED}')">Eingetreten</button>
-                            <button onclick="updateEventStatus(${event.id}, '${EVENT_STATUS.REJECTED}')">Ablehnen</button>
+                            <button class="btn-primary" onclick="updateEventStatus(${event.id}, '${EVENT_STATUS.CERTIFIED}')">Zertifizieren</button>
+                            <button class="btn-primary" onclick="updateEventStatus(${event.id}, '${EVENT_STATUS.OCCURRED}')">Eingetreten</button>
+                            <button class="btn-primary" onclick="updateEventStatus(${event.id}, '${EVENT_STATUS.REJECTED}')">Ablehnen</button>
                         </td>
                     </tr>
                 `;
@@ -458,9 +506,9 @@ function updateAdminUI() {
                         <td>${bet.stake}</td>
                         <td>${bet.status}</td>
                         <td>
-                            <button onclick="updateBetStatus(${bet.id}, '${BET_STATUS.WON}')">Gewonnen</button>
-                            <button onclick="updateBetStatus(${bet.id}, '${BET_STATUS.LOST}')">Verloren</button>
-                            <button onclick="updateBetStatus(${bet.id}, '${BET_STATUS.PAID}')">Ausbezahlt</button>
+                            <button class="btn-primary" onclick="updateBetStatus(${bet.id}, '${BET_STATUS.WON}')">Gewonnen</button>
+                            <button class="btn-primary" onclick="updateBetStatus(${bet.id}, '${BET_STATUS.LOST}')">Verloren</button>
+                            <button class="btn-primary" onclick="updateBetStatus(${bet.id}, '${BET_STATUS.PAID}')">Ausbezahlt</button>
                         </td>
                     </tr>
                 `;
@@ -493,6 +541,10 @@ function updateBankerUI() {
 }
 
 async function updateEventStatus(eventId, status) {
+    if (!supabase) {
+        showNotification("Supabase nicht verfügbar!", "error");
+        return;
+    }
     try {
         const response = await fetch('/.netlify/functions/update-event', {
             method: 'POST',
@@ -530,6 +582,10 @@ async function updateEventStatus(eventId, status) {
 }
 
 async function updateBetStatus(betId, status) {
+    if (!supabase) {
+        showNotification("Supabase nicht verfügbar!", "error");
+        return;
+    }
     try {
         const response = await fetch('/.netlify/functions/update-bet', {
             method: 'POST',
@@ -545,7 +601,7 @@ async function updateBetStatus(betId, status) {
         if (bet) {
             bet.status = status;
             if (status === BET_STATUS.PAID) {
-                bet.paid_date = data.paid_date;
+                bet.paid_date = new Date().toISOString();
             }
         }
         updateStats();
@@ -578,16 +634,6 @@ function checkBankerPassword() {
     } else {
         showNotification("Falsches Passwort!", "error");
     }
-}
-
-function updateUI() {
-    updateHomeStats();
-    loadTrendingEvents();
-    loadRecentBets();
-    updateEventSelect();
-    loadEventsList('all');
-    loadBetsList('all');
-    loadLeaderboard();
 }
 
 function setupEventListeners() {
