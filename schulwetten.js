@@ -3,6 +3,7 @@ const supabaseUrl = 'https://qirxdlnjyiveqhrstgki.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpcnhkbG5qeWl2ZXFocnN0Z2tpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1MTk1MzgsImV4cCI6MjA2NDA5NTUzOH0.o5Gx_MoYG_eGcVYq0He_ak8KzGWEr-HTnakICGb42Nc';
 
 let supabase;
+console.log("Attempting to initialize Supabase...");
 if (typeof Supabase === 'undefined') {
     console.error("Supabase is not defined. Ensure Supabase script is loaded.");
     showNotification("Supabase-Bibliothek nicht geladen!", "error");
@@ -239,7 +240,7 @@ function loadRecentBets() {
 function updateEventSelect() {
     const select = document.getElementById('event-select');
     if (select) {
-        select.innerHTML = '<option value="">Neues Ereignis erstellen</option>';
+        select.innerHTML = '<option value="">Neues Ereignisieren</option>';
         db.events.filter(e => e.status !== EVENT_STATUS.REJECTED).forEach(event => {
             select.innerHTML += `<option value="${event.id}">${CATEGORY_EMOJIS[event.category]} ${event.name}</option>`;
         });
@@ -328,7 +329,7 @@ async function handleBetSubmit(e) {
 async function handleEventSubmit(e) {
     e.preventDefault();
     if (!supabase) {
-        showNotification("Supabase nicht verfügbar!", "error");
+        showNotification("Fehler: Supabase nicht verfügbar!", "error");
         return;
     }
     const eventName = document.getElementById('event-name')?.value?.trim();
