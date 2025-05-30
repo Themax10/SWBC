@@ -8,6 +8,7 @@ if (typeof Supabase === 'undefined') {
     console.error("Supabase is not defined. Ensure Supabase script is loaded.");
     showNotification("Supabase-Bibliothek nicht geladen!", "error");
 } else {
+    console.log("Supabase object found, creating client...");
     try {
         supabase = Supabase.createClient(supabaseUrl, supabaseKey);
         console.log("Supabase client initialized");
@@ -240,7 +241,7 @@ function loadRecentBets() {
 function updateEventSelect() {
     const select = document.getElementById('event-select');
     if (select) {
-        select.innerHTML = '<option value="">Neues Ereignisieren</option>';
+        select.innerHTML = '<option value="">Neues Ereignis erstellen</option>';
         db.events.filter(e => e.status !== EVENT_STATUS.REJECTED).forEach(event => {
             select.innerHTML += `<option value="${event.id}">${CATEGORY_EMOJIS[event.category]} ${event.name}</option>`;
         });
